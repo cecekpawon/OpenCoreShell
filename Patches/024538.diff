@@ -1,0 +1,85 @@
+diff --git a/ShellPkg/Library/UefiShellDebug1CommandsLib/Edit/FileBuffer.c b/ShellPkg/Library/UefiShellDebug1CommandsLib/Edit/FileBuffer.c
+index 464f9de38e..4ec2c68989 100644
+--- a/ShellPkg/Library/UefiShellDebug1CommandsLib/Edit/FileBuffer.c
++++ b/ShellPkg/Library/UefiShellDebug1CommandsLib/Edit/FileBuffer.c
+@@ -765,6 +765,13 @@ FileBufferFree (
+   @retval EFI_LOAD_ERROR         The load failed.
+   @retval EFI_OUT_OF_RESOURCES   A memory allocation failed.
+   @retval EFI_INVALID_PARAMETER  FileName is a directory.
++
++  ---
++
++  7/24/2019 9:31:30 AM
++  Contain Slice's known tab to space chars fix produced by xml editor proggy such as 'PlistEdit pro'.
++  https://www.insanelymac.com/forum/topic/312263-edk2-uefi-shell-issuesbugs/?do=findComment&comment=2260725
++  https://www.insanelymac.com/forum/topic/304530-clover-change-explanations/?do=findComment&comment=2530772
+ **/
+ EFI_STATUS
+ FileBufferRead (
+@@ -777,6 +784,7 @@ FileBufferRead (
+   UINTN                           LoopVar1;
+   UINTN                           LoopVar2;
+   UINTN                           LineSize;
++  UINTN                           LineSize2;
+   VOID                            *Buffer;
+   CHAR16                          *UnicodeBuffer;
+   UINT8                           *AsciiBuffer;
+@@ -979,7 +987,7 @@ FileBufferRead (
+     //
+     for (LoopVar1 = 0; LoopVar1 < FileSize; LoopVar1++) {
+       Type = NewLineTypeUnknown;
+-
++      LineSize2 = 0;
+       for (LineSize = LoopVar1; LineSize < FileSize; LineSize++) {
+         if (FileBuffer.FileType == FileTypeAscii) {
+           if (AsciiBuffer[LineSize] == CHAR_CARRIAGE_RETURN) {
+@@ -1008,6 +1016,8 @@ FileBufferRead (
+             }
+ 
+             break;
++          } else if (AsciiBuffer[LineSize] == CHAR_TAB) {
++            LineSize2++;
+           }
+         } else {
+           if (UnicodeBuffer[LineSize] == CHAR_CARRIAGE_RETURN) {
+@@ -1036,6 +1046,8 @@ FileBufferRead (
+             }
+ 
+             break;
++          } else if (UnicodeBuffer[LineSize] == CHAR_TAB) {
++            LineSize2++;
+           }
+         }
+         //
+@@ -1068,7 +1080,7 @@ FileBufferRead (
+       // calculate file length
+       //
+       LineSize -= LoopVar1;
+-
++      LineSize += LineSize2;
+       //
+       // Unicode and one CHAR_NULL
+       //
+@@ -1084,9 +1096,20 @@ FileBufferRead (
+       //
+       for (LoopVar2 = 0; LoopVar2 < LineSize; LoopVar2++) {
+         if (FileBuffer.FileType == FileTypeAscii) {
+-          Line->Buffer[LoopVar2] = (CHAR16) AsciiBuffer[LoopVar1];
++          if (AsciiBuffer[LoopVar1] == CHAR_TAB) {
++            Line->Buffer[LoopVar2++] = L' ';
++            Line->Buffer[LoopVar2] = L' ';
++          } else {
++            Line->Buffer[LoopVar2] = (CHAR16) AsciiBuffer[LoopVar1];
++          }
++
+         } else {
+-          Line->Buffer[LoopVar2] = UnicodeBuffer[LoopVar1];
++          if (UnicodeBuffer[LoopVar1] == CHAR_TAB) {
++            Line->Buffer[LoopVar2++] = L' ';
++            Line->Buffer[LoopVar2] = L' ';
++          } else {
++            Line->Buffer[LoopVar2] = UnicodeBuffer[LoopVar1];
++          }
+         }
+ 
+         LoopVar1++;
